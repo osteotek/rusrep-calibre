@@ -1,0 +1,71 @@
+import string, re
+from calibre import strftime
+from calibre.web.feeds.recipes import BasicNewsRecipe
+from calibre.ebooks.BeautifulSoup import BeautifulSoup
+from collections import OrderedDict
+
+class Rusrep(BasicNewsRecipe):
+
+    title       = 'Русский Репортер'
+    __author__  = 'osteotek@gmail.com'
+    description = 'Russian magazine'
+    timefmt = ' [%a, %d %b, %Y]'
+    needs_subscription = False
+    #remove_tags_before = dict(attrs={'class':'first_column'})
+    #remove_tags_after  = dict(attrs={'class':'first_column'})
+    #remove_tags = [dict(attrs={'class':['articleTools', 'post-tools', 'side_tool', 'nextArticleLink clearfix']}),
+                #dict(id=['footer', 'toolsRight', 'articleInline', 'navigation', 'archive', 'side_search', 'blog_sidebar', 'side_tool', 'side_index']),
+                #dict(name=['script', 'noscript', 'style'])]
+    auto_cleanup = True
+    encoding = 'utf8'
+    no_stylesheets = True
+    recursions = 0
+    extra_css = 'h1 {font: sans-serif large;}\n.byline {font:monospace;}'
+
+    def retrieve_print(self, url):
+        soup = self.index_to_soup(url)
+        prnt = soup.find('a', attrs={'class':'print'}, href=True)
+        return 'http://rusrep.ru' + prnt['href']
+
+    def parse_index(self):
+        soup = self.index_to_soup('http://rusrep.ru/printissues')
+
+        ans = []
+        feeds = OrderedDict()
+        for section in soup.findAll(True,
+             attrs={'class':['block_magazine block_758', 'block_758 list']}):
+
+             a = section.find('a', attrs={'class':['block_title', 'issue']})
+             section_title = self.tag_to_string(a)
+
+             articles = []
+             subsection = ''
+             for node in section.findAll(attrs={'class':'title'}, href=True):
+                 subsec = node.findPreviousSibling('a')
+                 if subsec:
+                     subsection = self.tag_to_string(subsec)
+                 prefix = (subsection+': ') if subsection else ''
+
+                 title = self.tag_to_string(node)
+                 url = node['href']
+                 if url.startswith('/'):
+                     url = 'http://rusrep.ru' + url
+                 #url = self.retrieve_print(url)
+
+                 description = ''
+                 summary = node.findNextSibling('a')
+                 if summary:
+                     description = self.tag_to_string(summary)
+
+                 if title:
+                     title = prefix + title
+                     articles.append({'title':title, 'url':url,
+                         'description':description, 'date':''})
+
+             if articles:
+                 if section_title not in feeds:
+                     feeds[section_title] = []
+                 feeds[section_title] += articles
+
+        ans = [(key, val) for key, val in feeds.iteritems()]
+        return ans
