@@ -8,7 +8,7 @@ class Rusrep(BasicNewsRecipe):
 
     title       = 'Русский Репортер'
     __author__  = 'osteotek@gmail.com'
-    description = 'Russian magazine'
+    description = 'Russian weekly magazine'
     timefmt = ' [%a, %d %b, %Y]'
     needs_subscription = False
     #remove_tags_before = dict(attrs={'class':'first_column'})
@@ -36,7 +36,8 @@ class Rusrep(BasicNewsRecipe):
              attrs={'class':['block_magazine block_758', 'block_758 list']}):
 
              a = section.find('a', attrs={'class':['block_title', 'issue']})
-             section_title = self.tag_to_string(a)
+             if a:
+                 section_title = self.tag_to_string(a)
 
              articles = []
              subsection = ''
